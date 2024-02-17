@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Total Lagrangian MPM · Sequoia.jl</title><meta name="title" content="Total Lagrangian MPM · Sequoia.jl"/><meta property="og:title" content="Total Lagrangian MPM · Sequoia.jl"/><meta property="twitter:title" content="Total Lagrangian MPM · Sequoia.jl"/><meta name="description" content="Documentation for Sequoia.jl."/><meta property="og:description" content="Documentation for Sequoia.jl."/><meta property="twitter:description" content="Documentation for Sequoia.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Sequoia.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../getting_started/">Getting Started</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../elastic_impact/">Elastic impact between two rings</a></li><li class="is-active"><a class="tocitem" href>Total Lagrangian MPM</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Total Lagrangian MPM</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Total Lagrangian MPM</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/KeitaNakamura/Sequoia.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/KeitaNakamura/Sequoia.jl/blob/main/docs/literate/examples/tlmpm_vortex.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Total-Lagrangian-MPM"><a class="docs-heading-anchor" href="#Total-Lagrangian-MPM">Total Lagrangian MPM</a><a id="Total-Lagrangian-MPM-1"></a><a class="docs-heading-anchor-permalink" href="#Total-Lagrangian-MPM" title="Permalink"></a></h1><video autoplay muted loop playsinline controls width="300" src="https://github.com/KeitaNakamura/Sequoia.jl/assets/16015926/81d2c7a1-d0fc-4122-bd3c-0bc8f73ca3fa"/></video><p>This example demonstrates the total lagrangian material point method<sup class="footnote-reference"><a id="citeref-1" href="#footnote-1">[1]</a></sup>. The implementation solves generalized vortex problem<sup class="footnote-reference"><a id="citeref-1" href="#footnote-1">[1]</a></sup> using a linear kernel.</p><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>Currently, the Bernstein function used in the paper<sup class="footnote-reference"><a id="citeref-1" href="#footnote-1">[1]</a></sup> has not been implemented.</p></div></div><pre><code class="language-julia hljs">using Sequoia
+
+function tlmpm_vortex()
+
+    # simulation parameters
+    CFL    = 0.1  # Courant number
+    Δx     = 0.02 # grid spacing
+    t_stop = 1.0  # simulation stops at t=t_stop
+    α      = 0.99 # PIC-FLIP parameter
+
+    # material constants
+    E  = 1e6                    # Young&#39;s modulus
+    ν  = 0.3                    # Poisson&#39;s ratio
+    λ  = (E*ν) / ((1+ν)*(1-2ν)) # Lame&#39;s first parameter
+    μ  = E / 2(1 + ν)           # shear modulus
+    ρ⁰ = 1e3                    # initial density
+
+    # geometry
+    Rᵢ = 0.75
+    Rₒ = 1.25
+
+    # equations for vortex
+    G = π
+    T = 1.0
+    R̄ = (Rᵢ + Rₒ) / 2
+    function calc_b_Rθ(R, t)
+        h′′, h′, h = hessian(R -&gt; 1-8((R-R̄)/(Rᵢ-Rₒ))^2+16((R-R̄)/(Rᵢ-Rₒ))^4, R, :all)
+        g′′, g′, g = hessian(t -&gt; G*sin(π*t/T), t, :all)
+        β = g * h
+        b_R = ( μ/ρ⁰*(3g*h′+R*g*h′′) - R*g′′*h)*sin(β) + (μ/ρ⁰*R*(g*h′)^2 - R*(g′*h)^2)*cos(β)
+        b_θ = (-μ/ρ⁰*(3g*h′+R*g*h′′) + R*g′′*h)*cos(β) + (μ/ρ⁰*R*(g*h′)^2 + R*(g′*h)^2)*sin(β)
+        Vec(b_R, b_θ)
+    end
+    isinside(x::Vec) = Rᵢ^2 &lt; x⋅x &lt; Rₒ^2
+
+    # properties for grid and particles
+    GridProp = @NamedTuple begin
+        X    :: Vec{2, Float64}
+        m    :: Float64
+        m⁻¹  :: Float64
+        mv   :: Vec{2, Float64}
+        fint :: Vec{2, Float64}
+        fext :: Vec{2, Float64}
+        b    :: Vec{2, Float64}
+        v    :: Vec{2, Float64}
+        vⁿ   :: Vec{2, Float64}
+    end
+    ParticleProp = @NamedTuple begin
+        x  :: Vec{2, Float64}
+        X  :: Vec{2, Float64}
+        m  :: Float64
+        V⁰ :: Float64
+        v  :: Vec{2, Float64}
+        ṽ  :: Vec{2, Float64}
+        ã  :: Vec{2, Float64}
+        P  :: SecondOrderTensor{2, Float64, 4}
+        F  :: SecondOrderTensor{2, Float64, 4}
+    end
+
+    # background grid
+    grid = generate_grid(GridProp, Δx, (-1.5,1.5), (-1.5,1.5))
+    outside_gridinds = findall(!isinside, grid.X)
+
+    # particles
+    particles = generate_particles(ParticleProp, grid.X; alg=GridSampling(), spacing=1)
+    particles.V⁰ .= prod(grid.X[end]-grid.X[1]) / length(particles)
+
+    filter!(pt-&gt;isinside(pt.x), particles)
+
+    @. particles.X = particles.x
+    @. particles.m = ρ⁰ * particles.V⁰
+    @. particles.F = one(particles.F)
+    @show length(particles)
+
+    # precompute linear kernel values
+    mpvalues = map(eachindex(particles)) do p
+        mp = MPValues(Vec{2}, LinearBSpline())
+        update!(mp, particles[p], grid.X)
+        mp
+    end
+
+    # outputs
+    outdir = mkpath(joinpath(&quot;output.tmp&quot;, &quot;tlmpm_vortex&quot;))
+    pvdfile = joinpath(outdir, &quot;paraview&quot;)
+    closepvd(openpvd(pvdfile)) # create file
+
+    t::Float64 = 0.0
+    step::Int = 0
+    fps = 60
+    savepoints = collect(LinRange(t, t_stop, round(Int, t_stop*fps)+1))
+
+    Sequoia.@showprogress while t &lt; t_stop
+
+        # calculate timestep based on the wave speed of elastic material
+        Δt = CFL * spacing(grid) / maximum(LazyRows(particles)) do pt
+            ρ = pt.m / (pt.V⁰ * det(pt.F))
+            vc = √((λ+2μ) / ρ)
+            vc + norm(pt.v)
+        end
+
+        # compute grid body forces
+        for i in eachindex(grid)
+            if isinside(grid.X[i])
+                (x, y) = grid.X[i]
+                R = sqrt(x^2 + y^2)
+                θ = atan(y, x)
+                grid.b[i] = rotmat(θ) ⋅ calc_b_Rθ(R, t)
+            end
+        end
+
+        @P2G grid=&gt;i particles=&gt;p mpvalues=&gt;ip begin
+            m[i]    = @∑ N[ip] * m[p]
+            mv[i]   = @∑ N[ip] * m[p] * v[p]
+            fint[i] = @∑ -V⁰[p] * P[p] ⋅ ∇N[ip]
+        end
+
+        @. grid.m⁻¹  = inv(grid.m) * !iszero(grid.m)
+        @. grid.fext = grid.m * grid.b
+        @. grid.vⁿ   = grid.mv * grid.m⁻¹
+        @. grid.v    = grid.vⁿ + Δt * (grid.fint + grid.fext) * grid.m⁻¹
+        grid.v[outside_gridinds] .= zero(eltype(grid.v))
+
+        # update particle velocity and position
+        @G2P grid=&gt;i particles=&gt;p mpvalues=&gt;ip begin
+            ṽ[p]  = @∑ v[i] * N[ip]
+            ã[p]  = @∑ (v[i] - vⁿ[i])/Δt * N[ip]
+            v[p]  = (1-α)*ṽ[p] + α*(v[p] + Δt*ã[p])
+            x[p] += Δt * ṽ[p]
+        end
+
+        # remap updated velocity to grid (MUSL)
+        @P2G grid=&gt;i particles=&gt;p mpvalues=&gt;ip begin
+            mv[i] = @∑ N[ip] * m[p] * v[p]
+            v[i]  = mv[i] * m⁻¹[i]
+        end
+        grid.v[outside_gridinds] .= zero(eltype(grid.v))
+
+        # update stress
+        @G2P grid=&gt;i particles=&gt;p mpvalues=&gt;ip begin
+            F[p] += @∑ Δt * v[i] ⊗ ∇N[ip]
+            P[p]  = μ * (F[p] - inv(F[p])&#39;) + λ * log(det(F[p])) * inv(F[p])&#39;
+        end
+
+        t += Δt
+        step += 1
+
+        if t &gt; first(savepoints)
+            popfirst!(savepoints)
+            openpvd(pvdfile; append=true) do pvd
+                openvtm(string(pvdfile, step)) do vtm
+                    angle(x) = atan(x[2], x[1])
+                    openvtk(vtm, particles.x) do vtk
+                        vtk[&quot;velocity&quot;] = particles.v
+                        vtk[&quot;initial angle&quot;] = angle.(particles.X)
+                    end
+                    openvtk(vtm, grid.X) do vtk
+                        vtk[&quot;external force&quot;] = grid.fext
+                    end
+                    pvd[t] = vtm
+                end
+            end
+        end
+    end
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><section class="footnotes is-size-7"><ul><li class="footnote" id="footnote-1"><a class="tag is-link" href="#citeref-1">1</a><a href="https://doi.org/10.1016/j.cma.2019.112783">de Vaucorbeil, A., Nguyen, V.P. and Hutchinson, C.R., 2020. A Total-Lagrangian Material Point Method for solid mechanics problems involving large deformations. Computer Methods in Applied Mechanics and Engineering, 360, p.112783.</a></li></ul></section></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../elastic_impact/">« Elastic impact between two rings</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Saturday 17 February 2024 06:10">Saturday 17 February 2024</span>. Using Julia version 1.10.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
