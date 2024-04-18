@@ -4,17 +4,17 @@
 function tlmpm_vortex()
 
     # Simulation parameters
-    CFL    = 0.1  # Courant number
-    Δx     = 0.02 # grid spacing
-    t_stop = 1.0  # simulation stops at t=t_stop
-    α      = 0.99 # PIC-FLIP parameter
+    h   = 0.02 # Grid spacing
+    T   = 1.0  # Time span
+    CFL = 0.1  # Courant number
+    α   = 0.99 # PIC-FLIP parameter
 
     # Material constants
     E  = 1e6                    # Young&#39;s modulus
     ν  = 0.3                    # Poisson&#39;s ratio
     λ  = (E*ν) / ((1+ν)*(1-2ν)) # Lame&#39;s first parameter
-    μ  = E / 2(1 + ν)           # shear modulus
-    ρ⁰ = 1e3                    # initial density
+    μ  = E / 2(1 + ν)           # Shear modulus
+    ρ⁰ = 1e3                    # Initial density
 
     # Geometry
     Rᵢ = 0.75
@@ -22,11 +22,10 @@ function tlmpm_vortex()
 
     # Equations for vortex
     G = π
-    T = 1.0
     R̄ = (Rᵢ + Rₒ) / 2
     function calc_b_Rθ(R, t)
-        h′′, h′, h = hessian(R -&gt; 1-8((R-R̄)/(Rᵢ-Rₒ))^2+16((R-R̄)/(Rᵢ-Rₒ))^4, R, :all)
-        g′′, g′, g = hessian(t -&gt; G*sin(π*t/T), t, :all)
+        local h′′, h′, h = hessian(R -&gt; 1-8((R-R̄)/(Rᵢ-Rₒ))^2+16((R-R̄)/(Rᵢ-Rₒ))^4, R, :all)
+        local g′′, g′, g = hessian(t -&gt; G*sin(π*t/T), t, :all)
         β = g * h
         b_R = ( μ/ρ⁰*(3g*h′+R*g*h′′) - R*g′′*h)*sin(β) + (μ/ρ⁰*R*(g*h′)^2 - R*(g′*h)^2)*cos(β)
         b_θ = (-μ/ρ⁰*(3g*h′+R*g*h′′) + R*g′′*h)*cos(β) + (μ/ρ⁰*R*(g*h′)^2 + R*(g′*h)^2)*sin(β)
@@ -34,7 +33,6 @@ function tlmpm_vortex()
     end
     isinside(x::Vec) = Rᵢ^2 &lt; x⋅x &lt; Rₒ^2
 
-    # Properties for grid and particles
     GridProp = @NamedTuple begin
         X    :: Vec{2, Float64}
         m    :: Float64
@@ -59,12 +57,12 @@ function tlmpm_vortex()
     end
 
     # Background grid
-    grid = generate_grid(GridProp, CartesianMesh(Δx, (-1.5,1.5), (-1.5,1.5)))
+    grid = generate_grid(GridProp, CartesianMesh(h, (-1.5,1.5), (-1.5,1.5)))
     outside_gridinds = findall(!isinside, grid.X)
 
     # Particles
     particles = generate_particles(ParticleProp, grid.X; alg=GridSampling(), spacing=1)
-    particles.V⁰ .= prod(grid.X[end]-grid.X[1]) / length(particles)
+    particles.V⁰ .= volume(grid.X) / length(particles)
 
     filter!(pt-&gt;isinside(pt.x), particles)
 
@@ -74,10 +72,9 @@ function tlmpm_vortex()
     @show length(particles)
 
     # Precompute linear kernel values
-    mpvalues = map(eachindex(particles)) do p
-        mp = MPValue(Vec{2}, LinearBSpline())
-        update!(mp, particles[p], grid.X)
-        mp
+    mpvalues = generate_mpvalues(Vec{2, Float64}, LinearBSpline(), length(particles))
+    for p in eachindex(particles, mpvalues)
+        update!(mpvalues[p], particles.x[p], grid.X)
     end
 
     # Outputs
@@ -88,16 +85,14 @@ function tlmpm_vortex()
     t = 0.0
     step = 0
     fps = 60
-    savepoints = collect(LinRange(t, t_stop, round(Int, t_stop*fps)+1))
+    savepoints = collect(LinRange(t, T, round(Int, T*fps)+1))
 
-    Sequoia.@showprogress while t &lt; t_stop
+    Sequoia.@showprogress while t &lt; T
 
-        # Calculate timestep based on the wave speed of elastic material
-        Δt = CFL * spacing(grid) / maximum(LazyRows(particles)) do pt
-            ρ = pt.m / (pt.V⁰ * det(pt.F))
-            vc = √((λ+2μ) / ρ)
-            vc + norm(pt.v)
-        end
+        # Calculate timestep based on the wave speed
+        vmax = maximum(@. sqrt((λ+2μ) / (particles.m/(particles.V⁰ * det(particles.F)))) +
+                          norm(particles.v))
+        Δt = CFL * spacing(grid) / vmax
 
         # Compute grid body forces
         for i in eachindex(grid)
@@ -109,12 +104,14 @@ function tlmpm_vortex()
             end
         end
 
+        # Particle-to-grid transfer
         @P2G grid=&gt;i particles=&gt;p mpvalues=&gt;ip begin
             m[i]    = @∑ N[ip] * m[p]
             mv[i]   = @∑ N[ip] * m[p] * v[p]
             fint[i] = @∑ -V⁰[p] * P[p] ⋅ ∇N[ip]
         end
 
+        # Update grid velocity
         @. grid.m⁻¹  = inv(grid.m) * !iszero(grid.m)
         @. grid.fext = grid.m * grid.b
         @. grid.vⁿ   = grid.mv * grid.m⁻¹
@@ -162,4 +159,4 @@ function tlmpm_vortex()
             end
         end
     end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><section class="footnotes is-size-7"><ul><li class="footnote" id="footnote-1"><a class="tag is-link" href="#citeref-1">1</a><a href="https://doi.org/10.1016/j.cma.2019.112783">de Vaucorbeil, A., Nguyen, V.P. and Hutchinson, C.R., 2020. A Total-Lagrangian Material Point Method for solid mechanics problems involving large deformations. Computer Methods in Applied Mechanics and Engineering, 360, p.112783.</a></li></ul></section></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../elastic_impact/">« Transfer schemes</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.3.0 on <span class="colophon-date" title="Saturday 13 April 2024 13:59">Saturday 13 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><section class="footnotes is-size-7"><ul><li class="footnote" id="footnote-1"><a class="tag is-link" href="#citeref-1">1</a><a href="https://doi.org/10.1016/j.cma.2019.112783">de Vaucorbeil, A., Nguyen, V.P. and Hutchinson, C.R., 2020. A Total-Lagrangian Material Point Method for solid mechanics problems involving large deformations. Computer Methods in Applied Mechanics and Engineering, 360, p.112783.</a></li></ul></section></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../elastic_impact/">« Transfer schemes</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.3.0 on <span class="colophon-date" title="Thursday 18 April 2024 03:32">Thursday 18 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
