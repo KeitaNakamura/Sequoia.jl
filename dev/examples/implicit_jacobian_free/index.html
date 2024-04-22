@@ -17,7 +17,7 @@ function implicit_jacobian_free()
     ν  = 0.3                    # Poisson&#39;s ratio
     λ  = (E*ν) / ((1+ν)*(1-2ν)) # Lame&#39;s first parameter
     μ  = E / 2(1 + ν)           # Shear modulus
-    ρ⁰ = 500                    # Density
+    ρ⁰ = 500.0                  # Density
 
     # Newmark-beta integration
     β = 1/4
@@ -110,11 +110,11 @@ function implicit_jacobian_free()
         dofmap = DofMap(dofmask)
 
         # Solve the nonlinear equation
-        params = (; grid, particles, mpvalues, kirchhoff_stress, β, γ, dofmap, Δt)
+        state = (; grid, particles, mpvalues, kirchhoff_stress, β, γ, dofmap, Δt)
         @. grid.u = zero(grid.u) # Set zero dispacement for the first guess of the solution
         U = copy(dofmap(grid.u)) # Convert grid data to plain vector data
-        compute_residual(U) = residual(U, params)
-        compute_jacobian(U) = jacobian(U, params)
+        compute_residual(U) = residual(U, state)
+        compute_jacobian(U) = jacobian(U, state)
         Sequoia.newton!(U, compute_residual, compute_jacobian; linsolve = (x,A,b)-&gt;gmres!(x,A,b))
 
         # Grid dispacement, velocity and acceleration have been updated during Newton&#39;s iterations
@@ -137,11 +137,10 @@ function implicit_jacobian_free()
             end
         end
     end
-    mean(particles.x)
 end
 
-function residual(U::AbstractVector, params)
-    (; grid, particles, mpvalues, kirchhoff_stress, β, γ, dofmap, Δt) = params
+function residual(U::AbstractVector, state)
+    (; grid, particles, mpvalues, kirchhoff_stress, β, γ, dofmap, Δt) = state
 
     dofmap(grid.u) .= U
     @. grid.a = (1/(β*Δt^2))*grid.u - (1/(β*Δt))*grid.vⁿ - (1/2β-1)*grid.aⁿ
@@ -160,8 +159,8 @@ function residual(U::AbstractVector, params)
     @. β*Δt^2 * ($dofmap(grid.a) - $dofmap(grid.f) * $dofmap(grid.m⁻¹))
 end
 
-function jacobian(U::AbstractVector, params)
-    (; grid, particles, mpvalues, kirchhoff_stress, β, γ, dofmap, Δt) = params
+function jacobian(U::AbstractVector, state)
+    (; grid, particles, mpvalues, kirchhoff_stress, β, γ, dofmap, Δt) = state
 
     # Create a linear map to represent Jacobian-vector product J*δU.
     # `U` is acutally not used because the stiffness tensor is already calculated
@@ -179,4 +178,4 @@ function jacobian(U::AbstractVector, params)
 
         @. JδU = δU - β*Δt^2 * $dofmap(grid.f) * $dofmap(grid.m⁻¹)
     end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../tlmpm_vortex/">« Total Lagrangian MPM</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Monday 22 April 2024 02:02">Monday 22 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../tlmpm_vortex/">« Total Lagrangian MPM</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Monday 22 April 2024 02:09">Monday 22 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
