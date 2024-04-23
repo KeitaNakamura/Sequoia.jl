@@ -34,9 +34,13 @@ function dam_break(transfer::Symbol = :FLIP)
         aⁿ  :: Vec{2, Float64}
         ma  :: Vec{2, Float64}
         u   :: Vec{2, Float64}
-        p   :: Float64</code></pre><p>δ-correction</p><pre><code class="language-julia hljs">        V   :: Float64
+        p   :: Float64
+        # δ-correction
+        V   :: Float64
         Ṽ   :: Float64
-        E   :: Float64</code></pre><p>Residuals</p><pre><code class="language-julia hljs">        u_p   :: Vec{3, Float64}
+        E   :: Float64
+        # Residuals
+        u_p   :: Vec{3, Float64}
         R_mom :: Vec{2, Float64}
         R_mas :: Float64
     end
@@ -51,7 +55,11 @@ function dam_break(transfer::Symbol = :FLIP)
         p   :: Float64
         ∇p  :: Vec{2, Float64}
         s   :: SymmetricSecondOrderTensor{2, Float64, 3}
-        b   :: Vec{2, Float64}</code></pre><p>δ-correction</p><pre><code class="language-julia hljs">        ∇E² :: Vec{2, Float64}</code></pre><p>Stabilization</p><pre><code class="language-julia hljs">        τ₁  :: Float64
+        b   :: Vec{2, Float64}
+        # δ-correction
+        ∇E² :: Vec{2, Float64}
+        # Stabilization
+        τ₁  :: Float64
         τ₂  :: Float64
     end
 
@@ -347,4 +355,4 @@ function jacobian(state)
 
     # Extract the activated degrees of freedom
     submatrix(A, dofmap)
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../implicit_jacobian_based/">« Jacobian-based implicit method</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Tuesday 23 April 2024 06:17">Tuesday 23 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../implicit_jacobian_based/">« Jacobian-based implicit method</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Tuesday 23 April 2024 06:20">Tuesday 23 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
