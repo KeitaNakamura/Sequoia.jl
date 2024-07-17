@@ -89,9 +89,9 @@ function main()
         end
 
         @P2G grid=&gt;i particles=&gt;p mpvalues=&gt;ip begin
-            m[i]  = @∑ N[ip] * m[p]
-            mv[i] = @∑ N[ip] * m[p] * v[p]
-            ma[i] = @∑ N[ip] * m[p] * a[p]
+            m[i]  = @∑ w[ip] * m[p]
+            mv[i] = @∑ w[ip] * m[p] * v[p]
+            ma[i] = @∑ w[ip] * m[p] * a[p]
         end
 
         # Compute the grid velocity and acceleration at t = tⁿ
@@ -121,10 +121,10 @@ function main()
 
         # Grid dispacement, velocity and acceleration have been updated during Newton&#39;s iterations
         @G2P grid=&gt;i particles=&gt;p mpvalues=&gt;ip begin
-            ∇u[p] = @∑ u[i] ⊗ ∇N[ip]
-            a[p]  = @∑ a[i] * N[ip]
-            v[p] += @∑ Δt*((1-γ)*a[p] + γ*a[i]) * N[ip]
-            x[p]  = @∑ (X[i] + u[i]) * N[ip]
+            ∇u[p] = @∑ u[i] ⊗ ∇w[ip]
+            a[p]  = @∑ a[i] * w[ip]
+            v[p] += @∑ Δt*((1-γ)*a[p] + γ*a[i]) * w[ip]
+            x[p]  = @∑ (X[i] + u[i]) * w[ip]
             F[p]  = (I + ∇u[p]) ⋅ F[p]
         end
 
@@ -152,13 +152,13 @@ function residual(U::AbstractVector, state)
     @G2P grid=&gt;i particles=&gt;p mpvalues=&gt;ip begin
         # In addition to updating the stress tensor, the stiffness tensor,
         # which is utilized in the Jacobian-vector product, is also updated.
-        ∇u[p] = @∑ u[i] ⊗ ∇N[ip]
+        ∇u[p] = @∑ u[i] ⊗ ∇w[ip]
         ΔF⁻¹[p] = inv(I + ∇u[p])
         c[p], τ[p] = gradient(∇u -&gt; kirchhoff_stress((I + ∇u) ⋅ F[p]), ∇u[p], :all)
         c[p] = c[p] - transposing_tensor(τ[p] ⋅ ΔF⁻¹[p]&#39;)
     end
     @P2G grid=&gt;i particles=&gt;p mpvalues=&gt;ip begin
-        f[i] = @∑ -V⁰[p] * τ[p] ⋅ (∇N[ip] ⋅ ΔF⁻¹[p]) + m[p] * b[p] * N[ip]
+        f[i] = @∑ -V⁰[p] * τ[p] ⋅ (∇w[ip] ⋅ ΔF⁻¹[p]) + m[p] * b[p] * w[ip]
     end
 
     @. $dofmap(grid.m) * $dofmap(grid.a) - $dofmap(grid.f)
@@ -170,8 +170,8 @@ function jacobian(U::AbstractVector, state)
     I(i,j) = ifelse(i===j, one(Mat{3,3}), zero(Mat{3,3}))
     dotdot(a,C,b) = @einsum (i,j) -&gt; a[k] * C[i,k,j,l] * b[l]
     @P2G_Matrix grid=&gt;(i,j) particles=&gt;p mpvalues=&gt;(ip,jp) begin
-        A[i,j] = @∑ (dotdot(∇N[ip] ⋅ ΔF⁻¹[p], c[p], ∇N[jp])) * V⁰[p] + 1/(β*Δt^2) * I(i,j) * m[p] * N[jp]
+        A[i,j] = @∑ (dotdot(∇w[ip] ⋅ ΔF⁻¹[p], c[p], ∇w[jp])) * V⁰[p] + 1/(β*Δt^2) * I(i,j) * m[p] * w[jp]
     end
 
     submatrix(A, dofmap)
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../implicit_jacobian_free/">« Jacobian-free Newton–Krylov method</a><a class="docs-footer-nextpage" href="../dam_break/">Stabilized mixed MPM for incompressible fluid »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Monday 15 July 2024 06:14">Monday 15 July 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../implicit_jacobian_free/">« Jacobian-free Newton–Krylov method</a><a class="docs-footer-nextpage" href="../dam_break/">Stabilized mixed MPM for incompressible fluid »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Wednesday 17 July 2024 08:34">Wednesday 17 July 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
